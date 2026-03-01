@@ -1,0 +1,36 @@
+{
+  "name": "access-request-appservice",
+  "version": "1.0.0",
+  "description": "企业内部存取权限申请系统 - Azure App Service 部署",
+  "main": "server-v3.js",
+  "scripts": {
+    "start": "node server-v3.js",
+    "start:v3": "node server-v3.js",
+    "dev": "nodemon server-v3.js",
+    "migrate": "node migrate-database.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.3",
+    "mssql": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "keywords": [
+    "access-request",
+    "enterprise",
+    "azure",
+    "app-service",
+    "api"
+  ],
+  "author": "企业内部存取权限申请系统团队",
+  "license": "MIT"
+}

@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title data-i18n="appTitle">Enterprise Access Request System v3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;min-height:100vh;color:#333}
+/* ─ Login ─ */
+#pg-login{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a73e8,#0d47a1)}
+.login-card{background:#fff;border-radius:16px;padding:42px 40px;width:400px;max-width:95vw;box-shadow:0 24px 64px rgba(0,0,0,.22)}
+.login-logo{text-align:center;margin-bottom:30px}
+.login-logo .icon{font-size:2.4rem}
+.login-logo h1{font-size:1.25rem;color:#1a73e8;margin-top:8px;font-weight:700}
+.login-logo p{color:#888;font-size:.82rem;margin-top:4px}
+.form-lbl{display:block;font-size:.8rem;font-weight:600;color:#555;margin:14px 0 5px}
+.form-inp{width:100%;padding:10px 13px;border:1.5px solid #ddd;border-radius:8px;font-size:.93rem;transition:border .2s;outline:none}
+.form-inp:focus{border-color:#1a73e8}
+.btn-login{width:100%;padding:12px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-size:.97rem;font-weight:600;cursor:pointer;margin-top:22px}
+.btn-login:hover{background:#1558b2}.btn-login:disabled{background:#aaa;cursor:default}
+.login-err{color:#ea4335;font-size:.82rem;text-align:center;margin-top:10px;min-height:16px}
+/* ─ App Layout ─ */
+#pg-app{display:none;min-height:100vh;flex-direction:column}
+header{background:#1a73e8;color:#fff;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header h1{font-size:1rem;font-weight:700;letter-spacing:.2px}
+.hdr-right{display:flex;align-items:center;gap:10px}
+.u-pill{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 12px}
+.u-avatar{width:26px;height:26px;border-radius:50%;background:#fff;color:#1a73e8;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem}
+.u-name{font-size:.85rem}
+.role-tag{font-size:.7rem;padding:2px 7px;border-radius:9px;font-weight:600}
+.role-admin{background:#ff6b35;color:#fff}
+.role-approver_l1{background:#00c49a;color:#fff}
+.role-approver_l2{background:#7c4dff;color:#fff}
+.role-requester{background:#fff;color:#1a73e8}
+.btn-out{background:rgba(255,255,255,.18);color:#fff;border:none;border-radius:7px;padding:5px 12px;cursor:pointer;font-size:.82rem}
+.btn-out:hover{background:rgba(255,255,255,.28)}
+/* ─ Main ─ */
+.main{padding:20px 22px;flex:1}
+/* ─ Stats ─ */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.sc{background:#fff;border-radius:10px;padding:14px 18px;border-left:4px solid;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.sc-total{border-color:#1a73e8}.sc-l1{border-color:#f9ab00}.sc-l2{border-color:#7c4dff}
+.sc-approved{border-color:#34a853}.sc-rejected{border-color:#ea4335}.sc-draft{border-color:#aaa}
+.sc-n{font-size:1.9rem;font-weight:700;color:#333}
+.sc-l{font-size:.78rem;color:#888;margin-top:2px}
+/* ─ Toolbar ─ */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.fbtns{display:flex;gap:6px;flex-wrap:wrap}
+.fb{padding:5px 13px;border-radius:16px;border:1.5px solid #ddd;background:#fff;cursor:pointer;font-size:.8rem;transition:all .18s}
+.fb.on,.fb:hover{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.sbox{position:relative;flex:1;max-width:260px}
+.sbox input{width:100%;padding:6px 12px 6px 32px;border:1.5px solid #ddd;border-radius:16px;font-size:.82rem;outline:none}
+.sbox input:focus{border-color:#1a73e8}
+.sbox::before{content:'🔍';position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.75rem}
+.btn-new{background:#1a73e8;color:#fff;border:none;border-radius:7px;padding:7px 16px;cursor:pointer;font-size:.84rem;font-weight:600;margin-left:auto}
+.btn-new:hover{background:#1558b2}
+/* ─ Advanced Filters ─ */
+.adv-filter{background:#fff;border-radius:10px;padding:14px 18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06);display:none}
+.adv-filter.open{display:block}
+.af-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.af-group{flex:1;min-width:160px}
+.af-group label{display:block;font-size:.78rem;font-weight:600;color:#666;margin-bottom:4px}
+.af-group input,.af-group select{width:100%;padding:6px 9px;border:1.5px solid #ddd;border-radius:6px;font-size:.82rem;outline:none}
+.af-group input:focus,.af-group select:focus{border-color:#1a73e8}
+.af-footer{display:flex;gap:8px;justify-content:flex-end}
+/* ─ Table ─ */
+.tbl-wrap{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+table{width:100%;border-collapse:collapse}
+thead{background:#f8f9fa}
+th{padding:11px 13px;font-size:.78rem;font-weight:600;color:#666;text-align:left;white-space:nowrap}
+td{padding:11px 13px;font-size:.83rem;border-top:1px solid #f0f0f0;vertical-align:middle}
+tr:hover td{background:#fafbff}
+.empty{padding:60px;text-align:center;color:#bbb}
+.empty-ico{font-size:2rem;margin-bottom:8px}
+/* ─ Badges ─ */
+.badge{display:inline-block;padding:3px 9px;border-radius:11px;font-size:.73rem;font-weight:600;white-space:nowrap}
+.b-draft{background:#f1f3f4;color:#666}
+.b-pending_l1{background:#fff8e1;color:#e59800}
+.b-pending_l2{background:#ede7f6;color:#6a3ec8}
+.b-approved{background:#e6f4ea;color:#2d8a4e}
+.b-rejected{background:#fce8e6;color:#c5341a}
+.b-prio-urgent{background:#fce8e6;color:#c5341a}
+.b-prio-high{background:#fff3e0;color:#e07800}
+.b-prio-normal{background:#e8f0fe;color:#1a73e8}
+.b-prio-low{background:#e6f4ea;color:#2d8a4e}
+/* ─ Action Buttons ─ */
+.acts{display:flex;gap:5px;flex-wrap:nowrap}
+.bs{padding:4px 9px;border-radius:5px;border:none;cursor:pointer;font-size:.76rem;font-weight:600}
+.bs-view{background:#e8f0fe;color:#1a73e8}.bs-sub{background:#fff8e1;color:#e59800}
+.bs-apv{background:#e6f4ea;color:#2d8a4e}.bs-rej{background:#fce8e6;color:#c5341a}
+.bs:hover{filter:brightness(.9)}
+/* ─ Modals ─ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#fff;border-radius:13px;width:580px;max-width:96vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.modal.wide{width:720px}
+.mhdr{padding:18px 22px 14px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1}
+.mhdr h2{font-size:1rem;font-weight:700}
+.mclose{background:none;border:none;font-size:1.25rem;cursor:pointer;color:#aaa;padding:0 3px}
+.mbody{padding:18px 22px}
+.mfoot{padding:14px 22px;border-top:1px solid #eee;display:flex;gap:8px;justify-content:flex-end}
+/* ─ Form ─ */
+.fg{margin-bottom:13px}
+.fg label{display:block;font-size:.8rem;font-weight:600;color:#555;margin-bottom:4px}
+.fg label .req{color:#ea4335;margin-left:2px}
+.fg input,.fg select,.fg textarea{width:100%;padding:8px 11px;border:1.5px solid #ddd;border-radius:7px;font-size:.88rem;outline:none;font-family:inherit;transition:border .18s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:#1a73e8}
+.fg textarea{min-height:88px;resize:vertical}
+.fg-row{display:flex;gap:11px}
+.fg-row .fg{flex:1}
+/* ─ User Info Box ─ */
+.ubox{background:#f0f7ff;border:1px solid #c2d9f5;border-radius:8px;padding:13px 15px;margin-bottom:15px}
+.ubox h4{font-size:.8rem;font-weight:600;color:#1a73e8;margin-bottom:10px}
+.ubox-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ubox-item label{font-size:.72rem;color:#888;display:block}
+.ubox-item span{font-size:.85rem;font-weight:500;color:#333}
+/* ─ Detail Section ─ */
+.det-section{margin-bottom:18px}
+.det-section h3{font-size:.85rem;font-weight:600;color:#555;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #eee}
+.det-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.det-item label{font-size:.72rem;color:#888;display:block;margin-bottom:2px}
+.det-item span{font-size:.85rem;color:#333}
+.det-item.full{grid-column:1/-1}
+.hist-item{background:#f8f9fa;border-radius:7px;padding:10px 13px;margin-bottom:8px;border-left:3px solid #1a73e8}
+.hist-item.reject{border-color:#ea4335}
+.hist-meta{font-size:.75rem;color:#888;margin-top:4px}
+/* ─ Buttons ─ */
+.btn-p{background:#1a73e8;color:#fff;border:none;border-radius:7px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600}
+.btn-p:hover{background:#1558b2}
+.btn-s{background:#f1f3f4;color:#555;border:1.5px solid #ddd;border-radius:7px;padding:8px 16px;cursor:pointer;font-size:.85rem}
+.btn-s:hover{background:#e2e4e7}
+.btn-apv{background:#34a853;color:#fff;border:none;border-radius:7px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600}
+.btn-apv:hover{background:#2a7a41}
+.btn-rej{background:#ea4335;color:#fff;border:none;border-radius:7px;padding:8px 18px;cursor:pointer;font-size:.85rem;font-weight:600}
+.btn-rej:hover{background:#c5341a}
+/* ─ Toast ─ */
+.toast{position:fixed;bottom:22px;right:22px;padding:11px 18px;border-radius:8px;font-size:.84rem;color:#fff;background:#333;z-index:400;transition:all .3s;opacity:0;transform:translateY(20px)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:#34a853}.toast.err{background:#ea4335}.toast.inf{background:#1a73e8}
+
+/* ─ Pagination ─ */
+.pagination-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-info {
+  font-size: 0.82rem;
+  color: #666;
+  min-width: 180px;
+}
+
+.pagination-info span {
+  font-weight: 600;
+  color: #1a73e8;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  padding: 6px 12px;
+  border: 1.5px solid #ddd;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.18s;
+  min-width: 60px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #f0f7ff;
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.pagination-pages {
+  display: flex;
+  gap: 4px;
+  margin: 0 8px;
+}
+
+.page-btn {
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid #ddd;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  color: #555;
+  transition: all 0.18s;
+}
+
+.page-btn:hover {
+  background: #f0f7ff;
+  border-color: #1a73e8;
+  color: #1a73e8;
+}
+
+.page-btn.active {
+  background: #1a73e8;
+  border-color: #1a73e8;
+  color: #fff;
+  font-weight: 600;
+}
+
+.page-btn.ellipsis {
+  border: none;
+  background: transparent;
+  cursor: default;
+  min-width: 24px;
+}
+
+.pagination-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: #666;
+}
+
+.pagination-size select {
+  padding: 4px 8px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+}
+
+.pagination-size select:focus {
+  border-color: #1a73e8;
+}
+
+@media (max-width: 768px) {
+  .pagination-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+  
+  .pagination-info {
+    text-align: center;
+  }
+  
+  .pagination-size {
+    justify-content: center;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ════ LOGIN ════ -->
+<div id="pg-login">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">🔐</div>
+      <h1 data-i18n="appTitle">Enterprise Access Request System</h1>
+      <p data-i18n="appSubtitle">Internal Employees Only · Login with Company Email</p>
+    </div>
+    <form onsubmit="doLogin(event)">
+      <label class="form-lbl" data-i18n="emailLabel">Email</label>
+      <input class="form-inp" type="email" id="l-email" placeholder="name@company.com" required>
+      <label class="form-lbl" data-i18n="passwordLabel">Password</label>
+      <input class="form-inp" type="password" id="l-pass" placeholder="••••••••" required>
+      <button class="btn-login" id="l-btn" type="submit" data-i18n="loginBtn">Login</button>
+      <div class="login-err" id="l-err"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="pg-app">
+  <header>
+    <h1 data-i18n="headerTitle">🔐 Enterprise Access Request System</h1>
+    <div class="hdr-right">
+      <div class="u-pill">
+        <div class="u-avatar" id="u-av">U</div>
+        <div>
+          <div class="u-name" id="u-nm">User</div>
+          <span class="role-tag" id="u-role">-</span>
+        </div>
+      </div>
+      <button class="btn-out" onclick="setLang(_lang==='en'?'zh':'en')" id="lang-btn" title="Switch Language">🌐 EN</button>
+      <button class="btn-out" onclick="doLogout()" data-i18n="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <!-- Stats -->
+    <div class="stats" id="stats-row"></div>
+
+    <!-- Advanced Filter -->
+    <div class="adv-filter" id="adv-filter">
+      <div class="af-row">
+        <div class="af-group"><label data-i18n="startDateLabel">Start Date</label><input type="date" id="af-sd"></div>
+        <div class="af-group"><label data-i18n="endDateLabel">End Date</label><input type="date" id="af-ed"></div>
+        <div class="af-group">
+          <label data-i18n="requestTypeLabel">Request Type</label>
+          <select id="af-type">
+            <option value="" data-i18n="filterAll">All</option>
+            <option>VPN</option><option>SharePoint</option>
+            <option>Admin</option><option>Database</option>
+            <option>Application</option><option>Custom</option>
+          </select>
+        </div>
+        <div class="af-group"><label data-i18n="departmentLabel">Department</label><input type="text" id="af-dept" placeholder="Enter department name" data-i18n-ph="deptPlaceholder"></div>
+      </div>
+      <div class="af-footer">
+        <button class="btn-s" onclick="resetFilter()" data-i18n="resetBtn">Reset</button>
+        <button class="btn-p" onclick="loadList()" data-i18n="applyFilterBtn">Apply Filter</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="fbtns" id="filter-btns">
+        <button class="fb on" onclick="setStatus('',this)" data-i18n="statusAll">All</button>
+        <button class="fb" onclick="setStatus('pending_l1',this)" data-i18n="statusPendingL1">Pending L1</button>
+        <button class="fb" onclick="setStatus('pending_l2',this)" data-i18n="statusPendingL2">Pending L2</button>
+        <button class="fb" onclick="setStatus('approved',this)" data-i18n="statusApproved">Approved</button>
+        <button class="fb" onclick="setStatus('rejected',this)" data-i18n="statusRejected">Rejected</button>
+        <button class="fb" onclick="setStatus('draft',this)" data-i18n="statusDraft">Draft</button>
+        <button class="fb" onclick="toggleAdv()" data-i18n="advancedFilter">Advanced Filter ⚙️</button>
+      </div>
+      <div class="sbox"><input id="search" placeholder="Search resource/reason/requester..." data-i18n-ph="searchPlaceholder" oninput="debSearch()"></div>
+      <button class="btn-new" id="btn-new" onclick="openNewModal()" data-i18n="newRequestBtn">+ New Request</button>
+    </div>
+
+    <!-- Table -->
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-i18n="colId">ID</th><th data-i18n="colRequester">Requester</th><th data-i18n="colDeptTitle">Dept / Title</th>
+            <th data-i18n="colType">Request Type</th><th data-i18n="colResource">Target Resource</th><th data-i18n="colDuration">Duration</th>
+            <th data-i18n="colPriority">Priority</th><th data-i18n="colStatus">Status</th><th data-i18n="colSubmitTime">Submitted</th><th data-i18n="colActions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbl-body">
+          <tr><td colspan="10" class="empty"><div class="empty-ico">📋</div><span data-i18n="loadingText">Loading...</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination Bar -->
+    <div class="pagination-bar" id="pagination-bar">
+      <div class="pagination-info" id="pagination-info"></div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" id="btn-first" onclick="goToPage(1)" disabled>First</button>
+        <button class="pagination-btn" id="btn-prev" onclick="goToPrevPage()" disabled>Prev</button>
+        
+        <div class="pagination-pages" id="pagination-pages">
+          <!-- page buttons generated dynamically -->
+        </div>
+        
+        <button class="pagination-btn" id="btn-next" onclick="goToNextPage()" disabled>Next</button>
+        <button class="pagination-btn" id="btn-last" onclick="goToLastPage()" disabled>Last</button>
+      </div>
+      <div class="pagination-size">
+        <span data-i18n="perPageLabel">Per page:</span>
+        <select id="page-size" onchange="changePageSize()">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: New Request ════ -->
+<div class="overlay" id="m-new">
+  <div class="modal">
+    <div class="mhdr"><h2 data-i18n="newRequestTitle">New Permission Request</h2><button class="mclose" onclick="closeM('m-new')">×</button></div>
+    <div class="mbody">
+      <div class="ubox">
+        <h4 data-i18n="requesterInfo">📋 Requester Info (Auto-filled, read-only)</h4>
+        <div class="ubox-grid">
+          <div class="ubox-item"><label data-i18n="nameLabel">Name</label><span id="fi-name">-</span></div>
+          <div class="ubox-item"><label data-i18n="emailLabel2">Email</label><span id="fi-email">-</span></div>
+          <div class="ubox-item"><label data-i18n="deptLabel">Department</label><span id="fi-dept">-</span></div>
+          <div class="ubox-item"><label data-i18n="titleLabel">Title</label><span id="fi-title">-</span></div>
+        </div>
+      </div>
+
+      <div class="fg">
+        <label><span data-i18n="requestTypeReq">Request Type</span> <span class="req">*</span></label>
+        <select id="f-type">
+          <option value="" data-i18n="pleaseSelect">Please select</option>
+          <option value="VPN" data-i18n="vpnDesc">VPN — Virtual Private Network Access</option>
+          <option value="SharePoint" data-i18n="spDesc">SharePoint — File Sharing Access</option>
+          <option value="Admin" data-i18n="adminDesc">Admin — Administrator Privileges</option>
+          <option value="Database" data-i18n="dbDesc">Database — Database Access</option>
+          <option value="Application" data-i18n="appDesc">Application — Application System Access</option>
+          <option value="Custom" data-i18n="customDesc">Custom — Custom Permissions</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label><span data-i18n="targetResourceLabel">Target Resource (TargetResource)</span> <span class="req">*</span></label>
+        <input type="text" id="f-res" placeholder="e.g., Production DB, OA System, Finance System..." data-i18n-ph="targetResourcePh">
+      </div>
+      <div class="fg">
+        <label><span data-i18n="reasonLabel">Reason (Reason)</span> <span class="req">*</span></label>
+        <textarea id="f-reason" placeholder="Please describe the reason and purpose in detail..." data-i18n-ph="reasonPh"></textarea>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label data-i18n="durationLabel">Duration</label>
+          <select id="f-days">
+            <option value="7">7 days</option>
+            <option value="30" selected>30 days</option>
+            <option value="90">90 days</option>
+            <option value="180">180 days</option>
+            <option value="365">365 days</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label data-i18n="priorityLabel">Priority</label>
+          <select id="f-prio">
+            <option value="low" data-i18n="prio_low">Low</option>
+            <option value="normal" selected data-i18n="prio_normal">Normal</option>
+            <option value="high" data-i18n="prio_high">High</option>
+            <option value="urgent" data-i18n="prio_urgent">Urgent</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-s" onclick="closeM('m-new')" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn-s" id="btn-draft" data-i18n="saveDraftBtn">Save Draft</button>
+      <button class="btn-p" id="btn-submit" data-i18n="submitRequestBtn">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: Detail ════ -->
+<div class="overlay" id="m-detail">
+  <div class="modal wide">
+    <div class="mhdr"><h2 data-i18n="requestDetailTitle">Request Details</h2><button class="mclose" onclick="closeM('m-detail')">×</button></div>
+    <div class="mbody" id="m-detail-body">Loading...</div>
+    <div class="mfoot"><button class="btn-s" onclick="closeM('m-detail')" data-i18n="closeBtn">Close</button></div>
+  </div>
+</div>
+
+<!-- ════ MODAL: Approval ════ -->
+<div class="overlay" id="m-apv">
+  <div class="modal">
+    <div class="mhdr"><h2 id="apv-title" data-i18n="approvalTitle">Approval</h2><button class="mclose" onclick="closeM('m-apv')">×</button></div>
+    <div class="mbody">
+      <div class="fg">
+        <label data-i18n="approvalCommentLabel">Approval Comment</label>
+        <textarea id="apv-comment" placeholder="Enter approval comment (required for rejection)..." data-i18n-ph="approvalCommentPh"></textarea>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-s" onclick="closeM('m-apv')" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn-rej" onclick="doAction('reject')" data-i18n="rejectBtn">Reject</button>
+      <button class="btn-apv" onclick="doAction('approve')" data-i18n="approveBtn">Approve</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: User Management ════ -->
+<div class="overlay" id="m-users">
+  <div class="modal wide">
+    <div class="mhdr">
+      <h2 data-i18n="userMgmtTitle">User Management</h2>
+      <button class="mclose" onclick="closeM('m-users')">×</button>
+    </div>
+    <div class="mbody">
+      <div style="display:flex;gap:8px;margin-bottom:14px;justify-content:flex-end">
+        <button class="btn-p" onclick="openAddUser()" data-i18n="addUserBtn">+ New User</button>
+      </div>
+      <div id="users-body">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODAL: New User ════ -->
+<div class="overlay" id="m-adduser">
+  <div class="modal">
+    <div class="mhdr"><h2 data-i18n="newUserTitle">New User</h2><button class="mclose" onclick="closeM('m-adduser')">×</button></div>
+    <div class="mbody">
+      <div class="fg"><label><span data-i18n="nameReq">Name</span> <span class="req">*</span></label><input type="text" id="nu-name" placeholder="John Doe" data-i18n-ph="namePh"></div>
+      <div class="fg"><label><span data-i18n="emailReq">Email</span> <span class="req">*</span></label><input type="email" id="nu-email" placeholder="john@company.com" data-i18n-ph="emailPh2"></div>
+      <div class="fg"><label><span data-i18n="passReq">Password</span> <span class="req">*</span></label><input type="password" id="nu-pass" placeholder="Min 6 characters" data-i18n-ph="minPassPh"></div>
+      <div class="fg-row">
+        <div class="fg">
+          <label><span data-i18n="roleReq">Role</span> <span class="req">*</span></label>
+          <select id="nu-role">
+            <option value="requester" data-i18n="r_requester">Requester</option>
+            <option value="approver_l1" data-i18n="r_l1">L1 Approver</option>
+            <option value="approver_l2" data-i18n="r_l2">L2 Approver</option>
+            <option value="admin" data-i18n="r_admin">Administrator</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label data-i18n="deptLabel2">Department</label><input type="text" id="nu-dept" placeholder="IT Department" data-i18n-ph="deptPh"></div>
+        <div class="fg"><label data-i18n="titleLabel2">Title</label><input type="text" id="nu-title" placeholder="Engineer" data-i18n-ph="titlePh"></div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn-s" onclick="closeM('m-adduser')" data-i18n="cancelBtn">Cancel</button>
+      <button class="btn-p" onclick="doAddUser()" data-i18n="createUserBtn">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── i18n ──────────────────────────────────────────────────
+const translations = {
+  en: {
+    appTitle: 'Enterprise Access Request System',
+    appSubtitle: 'Internal Employees Only · Login with Company Email',
+    emailLabel: 'Email',
+    passwordLabel: 'Password',
+    loginBtn: 'Login',
+    loggingIn: 'Logging in...',
+    headerTitle: '🔐 Enterprise Access Request System',
+    defaultUser: 'User',
+    logoutBtn: 'Logout',
+    statusAll: 'All',
+    statusPendingL1: 'Pending L1',
+    statusPendingL2: 'Pending L2',
+    statusApproved: 'Approved',
+    statusRejected: 'Rejected',
+    statusDraft: 'Draft',
+    advancedFilter: 'Advanced Filter ⚙️',
+    startDateLabel: 'Start Date',
+    endDateLabel: 'End Date',
+    requestTypeLabel: 'Request Type',
+    filterAll: 'All',
+    departmentLabel: 'Department',
+    deptPlaceholder: 'Enter department name',
+    resetBtn: 'Reset',
+    applyFilterBtn: 'Apply Filter',
+    searchPlaceholder: 'Search resource/reason/requester...',
+    newRequestBtn: '+ New Request',
+    colId: 'ID',
+    colRequester: 'Requester',
+    colDeptTitle: 'Dept / Title',
+    colType: 'Request Type',
+    colResource: 'Target Resource',
+    colDuration: 'Duration',
+    colPriority: 'Priority',
+    colStatus: 'Status',
+    colSubmitTime: 'Submitted',
+    colActions: 'Actions',
+    loadingText: 'Loading...',
+    noRecords: 'No Records',
+    showingText: 'Showing',
+    ofText: 'of',
+    recordsText: 'records',
+    firstPage: 'First',
+    prevPage: 'Prev',
+    nextPage: 'Next',
+    lastPage: 'Last',
+    perPageLabel: 'Per page:',
+    newRequestTitle: 'New Permission Request',
+    requesterInfo: '📋 Requester Info (Auto-filled, read-only)',
+    nameLabel: 'Name',
+    emailLabel2: 'Email',
+    deptLabel: 'Department',
+    titleLabel: 'Title',
+    requestTypeReq: 'Request Type',
+    pleaseSelect: 'Please select',
+    vpnDesc: 'VPN — Virtual Private Network Access',
+    spDesc: 'SharePoint — File Sharing Access',
+    adminDesc: 'Admin — Administrator Privileges',
+    dbDesc: 'Database — Database Access',
+    appDesc: 'Application — Application System Access',
+    customDesc: 'Custom — Custom Permissions',
+    targetResourceLabel: 'Target Resource (TargetResource)',
+    targetResourcePh: 'e.g., Production DB, OA System, Finance System...',
+    reasonLabel: 'Reason (Reason)',
+    reasonPh: 'Please describe the reason and purpose in detail...',
+    durationLabel: 'Duration',
+    priorityLabel: 'Priority',
+    prio_low: 'Low',
+    prio_normal: 'Normal',
+    prio_high: 'High',
+    prio_urgent: 'Urgent',
+    cancelBtn: 'Cancel',
+    saveDraftBtn: 'Save Draft',
+    submitRequestBtn: 'Submit Request',
+    requestDetailTitle: 'Request Details',
+    closeBtn: 'Close',
+    approvalTitle: 'Approval',
+    approvalCommentLabel: 'Approval Comment',
+    approvalCommentPh: 'Enter approval comment (required for rejection)...',
+    rejectBtn: 'Reject',
+    approveBtn: 'Approve',
+    userMgmtTitle: 'User Management',
+    addUserBtn: '+ New User',
+    colName: 'Name',
+    colEmail: 'Email',
+    colRole: 'Role',
+    colDeptTitle2: 'Dept/Title',
+    colActiveStatus: 'Status',
+    colOps: 'Actions',
+    newUserTitle: 'New User',
+    nameReq: 'Name',
+    emailReq: 'Email',
+    passReq: 'Password',
+    minPassPh: 'Min 6 characters',
+    roleReq: 'Role',
+    r_requester: 'Requester',
+    r_l1: 'L1 Approver',
+    r_l2: 'L2 Approver',
+    r_admin: 'Administrator',
+    deptLabel2: 'Department',
+    titleLabel2: 'Title',
+    deptPh: 'IT Department',
+    titlePh: 'Engineer',
+    createUserBtn: 'Create User',
+    statTotal: 'All Requests',
+    statL1: 'Pending L1',
+    statL2: 'Pending L2',
+    statApproved: 'Approved',
+    statRejected: 'Rejected',
+    statDraft: 'Draft',
+    role_requester: 'Requester',
+    role_approver_l1: 'L1 Approver',
+    role_approver_l2: 'L2 Approver',
+    role_admin: 'Admin',
+    status_draft: 'Draft',
+    status_pending_l1: 'Pending L1',
+    status_pending_l2: 'Pending L2',
+    status_approved: 'Approved',
+    status_rejected: 'Rejected',
+    days: 'days',
+    active: 'Active',
+    inactive: 'Inactive',
+    viewBtn: 'View',
+    submitBtn: 'Submit',
+    approveActionBtn: 'Approve',
+    loadFailed: 'Load failed: ',
+    opFailed: 'Operation failed: ',
+    submitFailed: 'Submit failed: ',
+    fillRequired: 'Please fill required fields: Request Type, Target Resource, Reason',
+    submitOk: 'Request submitted, awaiting L1 approval ✅',
+    draftSaved: 'Draft saved',
+    submitOk2: 'Submitted, awaiting L1 approval ✅',
+    approvedMsg: 'Approved ✅',
+    rejectedMsg: 'Rejected',
+    confirmLogout: 'Confirm logout?',
+    confirmSubmit: 'Confirm submit this request?',
+    rejectNeedComment: 'Rejection requires a reason',
+    noHistory: 'No review history',
+    updated: 'Updated',
+    updateFailed: 'Update failed',
+    loadUserFailed: 'Failed to load users',
+    userCreated: 'User created ✅',
+    createFailed: 'Create failed: ',
+    fillRequired2: 'Please fill required fields',
+    detBasicInfo: '📌 Basic Information',
+    detId: 'Request ID',
+    detStatus: 'Status',
+    detRequester: 'Requester',
+    detEmail: 'Email',
+    detDept: 'Department',
+    detTitle: 'Job Title',
+    detType: 'Request Type',
+    detResource: 'Target Resource',
+    detDuration: 'Duration',
+    detPriority: 'Priority',
+    detSubmitTime: 'Submitted',
+    detUpdated: 'Updated',
+    detReason: 'Reason',
+    reviewHistory: '📝 Review History (immutable)',
+    approveAction: '✅ Approved',
+    rejectAction: '❌ Rejected',
+    approverLabel: 'Approver',
+    detLoadFailed: 'Load failed: ',
+    approvalTitleModal: 'Approve Request #',
+    namePh: 'John Doe',
+    emailPh2: 'john@company.com',
+  },
+  zh: {
+    appTitle: '企业内部存取权限申请系统',
+    appSubtitle: '内部员工专用 · 请使用公司邮箱登录',
+    emailLabel: '邮箱',
+    passwordLabel: '密码',
+    loginBtn: '登录',
+    loggingIn: '登录中...',
+    headerTitle: '🔐 企业内部存取权限申请系统',
+    defaultUser: '用户',
+    logoutBtn: '退出',
+    statusAll: '全部',
+    statusPendingL1: '待 L1',
+    statusPendingL2: '待 L2',
+    statusApproved: '已批',
+    statusRejected: '已拒',
+    statusDraft: '草稿',
+    advancedFilter: '高级筛选 ⚙️',
+    startDateLabel: '申请开始日期',
+    endDateLabel: '申请结束日期',
+    requestTypeLabel: '申请类型',
+    filterAll: '全部',
+    departmentLabel: '部门',
+    deptPlaceholder: '输入部门名称',
+    resetBtn: '重置',
+    applyFilterBtn: '应用筛选',
+    searchPlaceholder: '搜索资源/原因/申请人...',
+    newRequestBtn: '+ 新建申请',
+    colId: 'ID',
+    colRequester: '申请人',
+    colDeptTitle: '部门 / 职位',
+    colType: '申请类型',
+    colResource: '目标资源',
+    colDuration: '期限',
+    colPriority: '优先级',
+    colStatus: '状态',
+    colSubmitTime: '提交时间',
+    colActions: '操作',
+    loadingText: '加载中...',
+    noRecords: '暂无记录',
+    showingText: '显示',
+    ofText: '条，共',
+    recordsText: '条记录',
+    firstPage: '首页',
+    prevPage: '上一页',
+    nextPage: '下一页',
+    lastPage: '末页',
+    perPageLabel: '每页显示：',
+    newRequestTitle: '新建权限申请',
+    requesterInfo: '📋 申请人资讯（系统自动带入，不可修改）',
+    nameLabel: '姓名',
+    emailLabel2: '邮箱',
+    deptLabel: '部门',
+    titleLabel: '职位',
+    requestTypeReq: '申请类型',
+    pleaseSelect: '请选择',
+    vpnDesc: 'VPN — 虚拟专用网络访问',
+    spDesc: 'SharePoint — 文件共享访问',
+    adminDesc: 'Admin — 管理员权限',
+    dbDesc: 'Database — 数据库访问',
+    appDesc: 'Application — 应用系统权限',
+    customDesc: 'Custom — 自定义权限',
+    targetResourceLabel: '目标资源 (TargetResource)',
+    targetResourcePh: '例：生产数据库、OA系统、财务系统...',
+    reasonLabel: '申请原因 (Reason)',
+    reasonPh: '请详细说明申请原因及用途，方便审批员评估...',
+    durationLabel: '期限 (Duration)',
+    priorityLabel: '优先级',
+    prio_low: '低',
+    prio_normal: '普通',
+    prio_high: '高',
+    prio_urgent: '紧急',
+    cancelBtn: '取消',
+    saveDraftBtn: '存草稿',
+    submitRequestBtn: '提交申请',
+    requestDetailTitle: '申请详情',
+    closeBtn: '关闭',
+    approvalTitle: '审批操作',
+    approvalCommentLabel: '审批意见 / Comment',
+    approvalCommentPh: '请输入审批意见（拒绝时必填）...',
+    rejectBtn: '拒绝 Reject',
+    approveBtn: '批准 Approve',
+    userMgmtTitle: '用户管理',
+    addUserBtn: '+ 新建用户',
+    colName: '姓名',
+    colEmail: '邮箱',
+    colRole: '角色',
+    colDeptTitle2: '部门/职位',
+    colActiveStatus: '状态',
+    colOps: '操作',
+    newUserTitle: '新建用户',
+    nameReq: '姓名',
+    emailReq: '邮箱',
+    passReq: '密码',
+    minPassPh: '至少6位',
+    roleReq: '角色',
+    r_requester: '普通申请人',
+    r_l1: 'L1 审批员',
+    r_l2: 'L2 审批员',
+    r_admin: '管理员',
+    deptLabel2: '部门',
+    titleLabel2: '职位',
+    deptPh: 'IT部门',
+    titlePh: '工程师',
+    createUserBtn: '创建用户',
+    statTotal: '全部申请',
+    statL1: '待 L1 审批',
+    statL2: '待 L2 审批',
+    statApproved: '已批准',
+    statRejected: '已拒绝',
+    statDraft: '草稿',
+    role_requester: '申请人',
+    role_approver_l1: 'L1 审批员',
+    role_approver_l2: 'L2 审批员',
+    role_admin: '管理员',
+    status_draft: '草稿',
+    status_pending_l1: '待 L1 审批',
+    status_pending_l2: '待 L2 审批',
+    status_approved: '已批准',
+    status_rejected: '已拒绝',
+    days: '天',
+    active: '启用',
+    inactive: '禁用',
+    viewBtn: '查看',
+    submitBtn: '提交',
+    approveActionBtn: '审批',
+    loadFailed: '加载失败: ',
+    opFailed: '操作失败: ',
+    submitFailed: '提交失败: ',
+    fillRequired: '请填写必填项：申请类型、目标资源、原因',
+    submitOk: '申请已提交，等待 L1 审批 ✅',
+    draftSaved: '草稿已保存',
+    submitOk2: '已提交，等待 L1 审批 ✅',
+    approvedMsg: '审批通过 ✅',
+    rejectedMsg: '已拒绝',
+    confirmLogout: '确定退出？',
+    confirmSubmit: '确认提交此申请？',
+    rejectNeedComment: '拒绝时必须填写原因',
+    noHistory: '尚无审核记录',
+    updated: '已更新',
+    updateFailed: '更新失败',
+    loadUserFailed: '加载用户失败',
+    userCreated: '用户创建成功 ✅',
+    createFailed: '创建失败: ',
+    fillRequired2: '请填写必填项',
+    detBasicInfo: '📌 申请基本信息',
+    detId: '申请 ID',
+    detStatus: '状态',
+    detRequester: '申请人',
+    detEmail: '邮箱',
+    detDept: '部门',
+    detTitle: '职位',
+    detType: '申请类型',
+    detResource: '目标资源',
+    detDuration: '期限',
+    detPriority: '优先级',
+    detSubmitTime: '提交时间',
+    detUpdated: '更新时间',
+    detReason: '申请原因 (Reason)',
+    reviewHistory: '📝 审核记录（不可删除/覆盖）',
+    approveAction: '✅ 批准',
+    rejectAction: '❌ 拒绝',
+    approverLabel: '审批人',
+    detLoadFailed: '加载失败: ',
+    approvalTitleModal: '审批申请 #',
+    namePh: '张三',
+    emailPh2: 'zhangsan@company.com',
+  }
+};
+
+let _lang = localStorage.getItem('lang') || 'en';
+
+function t(key) {
+  return (translations[_lang] && translations[_lang][key]) || translations.en[key] || key;
+}
+
+function setLang(l) {
+  _lang = l;
+  localStorage.setItem('lang', l);
+  document.documentElement.lang = l === 'en' ? 'en' : 'zh-CN';
+  applyI18n();
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  // Update duration options
+  const daysEl = document.getElementById('f-days');
+  if (daysEl) {
+    daysEl.querySelectorAll('option').forEach(opt => {
+      opt.textContent = opt.value + ' ' + t('days');
+    });
+  }
+  // Update pagination buttons
+  const btnFirst = document.getElementById('btn-first');
+  if (btnFirst) btnFirst.textContent = t('firstPage');
+  const btnPrev = document.getElementById('btn-prev');
+  if (btnPrev) btnPrev.textContent = t('prevPage');
+  const btnNext = document.getElementById('btn-next');
+  if (btnNext) btnNext.textContent = t('nextPage');
+  const btnLast = document.getElementById('btn-last');
+  if (btnLast) btnLast.textContent = t('lastPage');
+  // Update lang toggle button
+  const langBtn = document.getElementById('lang-btn');
+  if (langBtn) langBtn.textContent = '🌐 ' + (_lang === 'en' ? 'EN' : 'ZH');
+  // Re-render pagination info if data is available
+  if (_totalItems > 0) updatePaginationInfo();
+}
+
+// ─── State ─────────────────────────────────────────────────
+const API = window.location.origin;
+let _tok = localStorage.getItem('tok');
+let _me = JSON.parse(localStorage.getItem('me') || '{}');
+let _filterStatus = '';
+let _searchTimer = null;
+let _approvalId = null;
+
+// Pagination state
+let _currentPage = 1;
+let _pageSize = 10;
+let _totalItems = 0;
+let _totalPages = 1;
+
+function getRoleLbl(role) { return t('role_' + role) || role; }
+function getStatusLbl(status) { return t('status_' + status) || status; }
+function getPrioLbl(prio) { return t('prio_' + (prio || 'normal')) || prio || t('prio_normal'); }
+
+// ─── Init ──────────────────────────────────────────────────
+function initApp() {
+  document.documentElement.lang = _lang === 'en' ? 'en' : 'zh-CN';
+  if (_tok && _me.id) { showApp(); refresh(); }
+  else showLogin();
+  applyI18n();
+}
+
+window.onload = initApp;
+
+function showLogin() {
+  document.getElementById('pg-login').style.display = 'flex';
+  document.getElementById('pg-app').style.display = 'none';
+  applyI18n();
+}
+function showApp() {
+  document.getElementById('pg-login').style.display = 'none';
+  document.getElementById('pg-app').style.display = 'flex';
+  renderUserBadge();
+  applyRoleUI();
+  applyI18n();
+}
+
+// ─── Login / Logout ────────────────────────────────────────
+async function doLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('l-btn');
+  const err = document.getElementById('l-err');
+  btn.disabled = true; btn.textContent = t('loggingIn'); err.textContent = '';
+  try {
+    const r = await post('/api/auth/login', {
+      email: document.getElementById('l-email').value.trim(),
+      password: document.getElementById('l-pass').value
+    });
+    _tok = r.token; _me = r.user;
+    localStorage.setItem('tok', _tok); localStorage.setItem('me', JSON.stringify(_me));
+    showApp(); refresh();
+  } catch (ex) { err.textContent = ex.message; }
+  finally { btn.disabled = false; btn.textContent = t('loginBtn'); }
+}
+
+function doLogout() {
+  if (!confirm(t('confirmLogout'))) return;
+  _tok = null; _me = {};
+  localStorage.removeItem('tok'); localStorage.removeItem('me');
+  showLogin();
+}
+
+function renderUserBadge() {
+  document.getElementById('u-av').textContent = (_me.name || 'U').charAt(0).toUpperCase();
+  document.getElementById('u-nm').textContent = _me.name || t('defaultUser');
+  const rt = document.getElementById('u-role');
+  rt.textContent = getRoleLbl(_me.role) || _me.role;
+  rt.className = `role-tag role-${_me.role}`;
+}
+
+function applyRoleUI() {
+  const isAdmin = _me.role === 'admin';
+  const isReq = _me.role === 'requester';
+  document.getElementById('btn-new').style.display = isAdmin || isReq ? '' : 'none';
+}
+
+// ─── Refresh ───────────────────────────────────────────────
+async function refresh() {
+  await loadUserInfo();
+  await loadStats();
+  await loadList();
+}
+
+async function loadUserInfo() {
+  try {
+    const r = await get('/api/auth/me');
+    _me = { ..._me, ...r.user };
+    localStorage.setItem('me', JSON.stringify(_me));
+    renderUserBadge();
+  } catch(e) { /* silent */ }
+}
+
+// ─── Stats ─────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const r = await get('/api/requests?limit=1000');
+    const list = r.requests || [];
+    const cnt = (s) => list.filter(x => x.status === s).length;
+    document.getElementById('stats-row').innerHTML = `
+      <div class="sc sc-total"><div class="sc-n">${list.length}</div><div class="sc-l">${t('statTotal')}</div></div>
+      <div class="sc sc-l1"><div class="sc-n">${cnt('pending_l1')}</div><div class="sc-l">${t('statL1')}</div></div>
+      <div class="sc sc-l2"><div class="sc-n">${cnt('pending_l2')}</div><div class="sc-l">${t('statL2')}</div></div>
+      <div class="sc sc-approved"><div class="sc-n">${cnt('approved')}</div><div class="sc-l">${t('statApproved')}</div></div>
+      <div class="sc sc-rejected"><div class="sc-n">${cnt('rejected')}</div><div class="sc-l">${t('statRejected')}</div></div>
+      <div class="sc sc-draft"><div class="sc-n">${cnt('draft')}</div><div class="sc-l">${t('statDraft')}</div></div>
+    `;
+  } catch(e) { /* silent */ }
+}
+
+// ─── List ──────────────────────────────────────────────────
+async function loadList(page = _currentPage) {
+  _currentPage = page;
+  
+  const p = new URLSearchParams();
+  if (_filterStatus) p.append('status', _filterStatus);
+  const sd = document.getElementById('af-sd')?.value;
+  const ed = document.getElementById('af-ed')?.value;
+  const tp = document.getElementById('af-type')?.value;
+  const dp = document.getElementById('af-dept')?.value;
+  const sq = document.getElementById('search')?.value;
+  if (sd) p.append('startDate', sd);
+  if (ed) p.append('endDate', ed);
+  if (tp) p.append('requestType', tp);
+  if (dp) p.append('department', dp);
+  if (sq) p.append('search', sq);
+  
+  p.append('page', _currentPage);
+  p.append('limit', _pageSize);
+
+  try {
+    const r = await get(`/api/requests?${p}`);
+    renderList(r.requests || []);
+    
+    if (r.pagination) {
+      _totalItems = r.pagination.total || 0;
+      _totalPages = r.pagination.pages || 1;
+      updatePaginationInfo();
+      renderPaginationButtons();
+    }
+  } catch(e) { toast(t('loadFailed') + e.message, 'err'); }
+}
+
+// ─── Pagination Functions ────────────────────────────────
+function updatePaginationInfo() {
+  const start = Math.min((_currentPage - 1) * _pageSize + 1, _totalItems);
+  const end = Math.min(_currentPage * _pageSize, _totalItems);
+  
+  document.getElementById('pagination-info').innerHTML =
+    `${t('showingText')} <span style="font-weight:600;color:#1a73e8">${start}</span>-<span style="font-weight:600;color:#1a73e8">${end}</span> ${t('ofText')} <span style="font-weight:600;color:#1a73e8">${_totalItems}</span> ${t('recordsText')}`;
+  
+  document.getElementById('btn-first').disabled = _currentPage <= 1;
+  document.getElementById('btn-prev').disabled = _currentPage <= 1;
+  document.getElementById('btn-next').disabled = _currentPage >= _totalPages;
+  document.getElementById('btn-last').disabled = _currentPage >= _totalPages;
+}
+
+function renderPaginationButtons() {
+  const pagesContainer = document.getElementById('pagination-pages');
+  if (!pagesContainer) return;
+  
+  let pagesHTML = '';
+  const maxVisiblePages = 5;
+  
+  if (_totalPages <= maxVisiblePages) {
+    for (let i = 1; i <= _totalPages; i++) {
+      pagesHTML += `<button class="page-btn ${i === _currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+  } else {
+    let startPage = Math.max(1, _currentPage - 2);
+    let endPage = Math.min(_totalPages, startPage + maxVisiblePages - 1);
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+    
+    if (startPage > 1) {
+      pagesHTML += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+      if (startPage > 2) {
+        pagesHTML += `<span class="page-btn ellipsis">...</span>`;
+      }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pagesHTML += `<button class="page-btn ${i === _currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    
+    if (endPage < _totalPages) {
+      if (endPage < _totalPages - 1) {
+        pagesHTML += `<span class="page-btn ellipsis">...</span>`;
+      }
+      pagesHTML += `<button class="page-btn" onclick="goToPage(${_totalPages})">${_totalPages}</button>`;
+    }
+  }
+  
+  pagesContainer.innerHTML = pagesHTML;
+}
+
+function goToPage(page) {
+  if (page < 1 || page > _totalPages || page === _currentPage) return;
+  loadList(page);
+}
+
+function goToPrevPage() {
+  if (_currentPage > 1) {
+    goToPage(_currentPage - 1);
+  }
+}
+
+function goToNextPage() {
+  if (_currentPage < _totalPages) {
+    goToPage(_currentPage + 1);
+  }
+}
+
+function goToFirstPage() {
+  goToPage(1);
+}
+
+function goToLastPage() {
+  goToPage(_totalPages);
+}
+
+function changePageSize() {
+  const newSize = parseInt(document.getElementById('page-size').value);
+  if (newSize !== _pageSize) {
+    _pageSize = newSize;
+    _currentPage = 1;
+    loadList(1);
+  }
+}
+
+// ─── List Rendering ────────────────────────────────────────
+function renderList(list) {
+  const tbody = document.getElementById('tbl-body');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="empty"><div class="empty-ico">📋</div>${t('noRecords')}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(r => {
+    const canSubmit = r.status === 'draft' && (r.requesterId === _me.id || _me.role === 'admin');
+    const canApvL1  = r.status === 'pending_l1' && (_me.role === 'approver_l1' || _me.role === 'admin');
+    const canApvL2  = r.status === 'pending_l2' && (_me.role === 'approver_l2' || _me.role === 'admin');
+    return `
+      <tr>
+        <td>#${r.id}</td>
+        <td>
+          <div style="font-weight:500">${r.requesterName || r.uName || '-'}</div>
+          <div style="font-size:.73rem;color:#888">${r.requesterEmail || '-'}</div>
+        </td>
+        <td>
+          <div style="font-size:.8rem">${r.department || r.uDept || '—'}</div>
+          <div style="font-size:.73rem;color:#888">${r.jobTitle || r.uTitle || '—'}</div>
+        </td>
+        <td>${r.requestType || '-'}</td>
+        <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.targetResource || r.resourceName || ''}">${r.targetResource || r.resourceName || '-'}</td>
+        <td>${r.durationDays || r.requestedDurationDays || 30} ${t('days')}</td>
+        <td><span class="badge b-prio-${r.priority || 'normal'}">${getPrioLbl(r.priority)}</span></td>
+        <td><span class="badge b-${r.status}">${getStatusLbl(r.status)}</span></td>
+        <td style="white-space:nowrap;font-size:.78rem">${fmtDate(r.createdAt)}</td>
+        <td>
+          <div class="acts">
+            <button class="bs bs-view" onclick="viewDetail(${r.id})">${t('viewBtn')}</button>
+            ${canSubmit ? `<button class="bs bs-sub" onclick="submitDraft(${r.id})">${t('submitBtn')}</button>` : ''}
+            ${canApvL1 || canApvL2 ? `<button class="bs bs-apv" onclick="openApproval(${r.id})">${t('approveActionBtn')}</button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ─── Filter ────────────────────────────────────────────────
+function setStatus(s, btn) {
+  _filterStatus = s;
+  document.querySelectorAll('#filter-btns .fb').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  loadList();
+}
+function toggleAdv() { document.getElementById('adv-filter').classList.toggle('open'); }
+function resetFilter() {
+  ['af-sd','af-ed','af-dept'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('af-type').value = '';
+  loadList();
+}
+function debSearch() {
+  clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(loadList, 280);
+}
+
+// ─── New Request ───────────────────────────────────────────
+function openNewModal() {
+  document.getElementById('fi-name').textContent  = _me.name        || '—';
+  document.getElementById('fi-email').textContent = _me.email       || '—';
+  document.getElementById('fi-dept').textContent  = _me.department  || '—';
+  document.getElementById('fi-title').textContent = _me.jobTitle    || '—';
+  ['f-type','f-res','f-reason'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el.tagName === 'SELECT') el.value = '';
+    else el.value = '';
+  });
+  document.getElementById('f-days').value = '30';
+  document.getElementById('f-prio').value = 'normal';
+  
+  document.getElementById('btn-draft').onclick = () => saveDraft();
+  document.getElementById('btn-submit').onclick = () => submitNew();
+  
+  openM('m-new');
+}
+
+async function saveDraft() { await _submitRequest(false); }
+async function submitNew() { await _submitRequest(true); }
+
+let _submitting = false;
+async function _submitRequest(autoSubmit) {
+  if (_submitting) return;
+  const type = document.getElementById('f-type').value;
+  const res  = document.getElementById('f-res').value.trim();
+  const reason = document.getElementById('f-reason').value.trim();
+  if (!type || !res || !reason) { toast(t('fillRequired'), 'err'); return; }
+
+  _submitting = true;
+  document.getElementById('btn-submit').disabled = true;
+  document.getElementById('btn-draft').disabled = true;
+  try {
+    const data = {
+      requestType: type,
+      targetResource: res,
+      reason,
+      durationDays: document.getElementById('f-days').value,
+      priority: document.getElementById('f-prio').value
+    };
+    const r = await post('/api/requests', data);
+    if (autoSubmit) {
+      await post(`/api/requests/${r.requestId}/submit`, {});
+      toast(t('submitOk'), 'ok');
+    } else {
+      toast(t('draftSaved'), 'ok');
+    }
+    closeM('m-new');
+    refresh();
+  } catch(e) { toast(t('opFailed') + e.message, 'err'); }
+  finally { _submitting = false; document.getElementById('btn-submit').disabled = false; document.getElementById('btn-draft').disabled = false; }
+}
+
+// ─── Submit Draft ──────────────────────────────────────────
+async function submitDraft(id) {
+  if (!confirm(t('confirmSubmit'))) return;
+  try {
+    await post(`/api/requests/${id}/submit`, {});
+    toast(t('submitOk2'), 'ok');
+    refresh();
+  } catch(e) { toast(t('submitFailed') + e.message, 'err'); }
+}
+
+// ─── Detail ────────────────────────────────────────────────
+async function viewDetail(id) {
+  document.getElementById('m-detail-body').innerHTML = t('loadingText');
+  openM('m-detail');
+  try {
+    const r = await get(`/api/requests/${id}`);
+    const hist = r.approvalHistory || [];
+    document.getElementById('m-detail-body').innerHTML = `
+      <div class="det-section">
+        <h3>${t('detBasicInfo')}</h3>
+        <div class="det-grid">
+          <div class="det-item"><label>${t('detId')}</label><span>#${r.id}</span></div>
+          <div class="det-item"><label>${t('detStatus')}</label><span class="badge b-${r.status}">${getStatusLbl(r.status)}</span></div>
+          <div class="det-item"><label>${t('detRequester')}</label><span>${r.requesterName || r.uName || '-'}</span></div>
+          <div class="det-item"><label>${t('detEmail')}</label><span>${r.requesterEmail || '-'}</span></div>
+          <div class="det-item"><label>${t('detDept')}</label><span>${r.department || r.uDept || '—'}</span></div>
+          <div class="det-item"><label>${t('detTitle')}</label><span>${r.jobTitle || r.uTitle || '—'}</span></div>
+          <div class="det-item"><label>${t('detType')}</label><span>${r.requestType || '-'}</span></div>
+          <div class="det-item"><label>${t('detResource')}</label><span>${r.targetResource || r.resourceName || '-'}</span></div>
+          <div class="det-item"><label>${t('detDuration')}</label><span>${r.durationDays || r.requestedDurationDays || 30} ${t('days')}</span></div>
+          <div class="det-item"><label>${t('detPriority')}</label><span class="badge b-prio-${r.priority || 'normal'}">${getPrioLbl(r.priority)}</span></div>
+          <div class="det-item"><label>${t('detSubmitTime')}</label><span>${fmtDate(r.createdAt)}</span></div>
+          <div class="det-item"><label>${t('detUpdated')}</label><span>${fmtDate(r.updatedAt)}</span></div>
+          <div class="det-item full"><label>${t('detReason')}</label><span style="white-space:pre-line">${r.reason || r.justification || '-'}</span></div>
+        </div>
+      </div>
+
+      <div class="det-section">
+        <h3>${t('reviewHistory')}</h3>
+        ${hist.length ? hist.map(h => `
+          <div class="hist-item ${h.action === 'reject' ? 'reject' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <strong>${h.level} ${h.action === 'approve' ? t('approveAction') : t('rejectAction')}</strong>
+              <span class="badge ${h.action === 'approve' ? 'b-approved' : 'b-rejected'}">${h.action === 'approve' ? t('approvedMsg') : t('rejectedMsg')}</span>
+            </div>
+            ${h.comment ? `<div style="margin-top:6px;font-style:italic;color:#555">"${h.comment}"</div>` : ''}
+            <div class="hist-meta">${t('approverLabel')}：${h.approverName} (${h.approverEmail}) · ${fmtDate(h.createdAt)}</div>
+          </div>
+        `).join('') : `<div style="color:#bbb;text-align:center;padding:20px">${t('noHistory')}</div>`}
+      </div>
+    `;
+  } catch(e) {
+    document.getElementById('m-detail-body').innerHTML = `<div style="color:#ea4335">${t('detLoadFailed')}${e.message}</div>`;
+  }
+}
+
+// ─── Approval ──────────────────────────────────────────────
+function openApproval(id) {
+  _approvalId = id;
+  document.getElementById('apv-comment').value = '';
+  document.getElementById('apv-title').textContent = `${t('approvalTitleModal')}${id}`;
+  openM('m-apv');
+}
+
+async function doAction(act) {
+  const comment = document.getElementById('apv-comment').value.trim();
+  if (act === 'reject' && !comment) { toast(t('rejectNeedComment'), 'err'); return; }
+  try {
+    await post(`/api/requests/${_approvalId}/${act}`, { comment });
+    toast(act === 'approve' ? t('approvedMsg') : t('rejectedMsg'), act === 'approve' ? 'ok' : 'err');
+    closeM('m-apv');
+    refresh();
+  } catch(e) { toast(t('opFailed') + e.message, 'err'); }
+}
+
+// ─── Users ─────────────────────────────────────────────────
+async function openUsers() {
+  openM('m-users');
+  await loadUsers();
+}
+async function loadUsers() {
+  try {
+    const r = await get('/api/users');
+    const users = r.users || [];
+    document.getElementById('users-body').innerHTML = `
+      <table style="width:100%;border-collapse:collapse">
+        <thead style="background:#f8f9fa"><tr>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">ID</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">${t('colName')}</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">${t('colEmail')}</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">${t('colRole')}</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">${t('colDeptTitle2')}</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">${t('colActiveStatus')}</th>
+          <th style="padding:9px 12px;text-align:left;font-size:.78rem;color:#666">${t('colOps')}</th>
+        </tr></thead>
+        <tbody>
+          ${users.map(u => `
+            <tr style="border-top:1px solid #f0f0f0">
+              <td style="padding:9px 12px;font-size:.82rem">#${u.id}</td>
+              <td style="padding:9px 12px;font-size:.82rem;font-weight:500">${u.name}</td>
+              <td style="padding:9px 12px;font-size:.8rem;color:#666">${u.email}</td>
+              <td style="padding:9px 12px"><span class="role-tag role-${u.role}">${getRoleLbl(u.role)}</span></td>
+              <td style="padding:9px 12px;font-size:.78rem">${u.department||'—'} / ${u.jobTitle||'—'}</td>
+              <td style="padding:9px 12px"><span class="badge ${u.isActive?'b-approved':'b-rejected'}">${u.isActive?t('active'):t('inactive')}</span></td>
+              <td style="padding:9px 12px">
+                <select style="font-size:.77rem;padding:3px 6px;border:1px solid #ddd;border-radius:5px" onchange="updateRole(${u.id},this.value,${u.isActive})">
+                  <option value="requester" ${u.role==='requester'?'selected':''}>${t('r_requester')}</option>
+                  <option value="approver_l1" ${u.role==='approver_l1'?'selected':''}>${t('r_l1')}</option>
+                  <option value="approver_l2" ${u.role==='approver_l2'?'selected':''}>${t('r_l2')}</option>
+                  <option value="admin" ${u.role==='admin'?'selected':''}>${t('r_admin')}</option>
+                </select>
+                <button class="bs ${u.isActive?'bs-rej':'bs-apv'}" onclick="toggleActive(${u.id},'${u.role}',${u.isActive?0:1})">${u.isActive?t('inactive'):t('active')}</button>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch(e) { toast(t('loadUserFailed'), 'err'); }
+}
+async function updateRole(id, role, isActive) {
+  try {
+    await put(`/api/users/${id}`, { role, isActive: !!isActive });
+    toast(t('updated'), 'ok'); await loadUsers();
+  } catch(e) { toast(t('updateFailed'), 'err'); }
+}
+async function toggleActive(id, role, isActive) {
+  try {
+    await put(`/api/users/${id}`, { role, isActive: !!isActive });
+    toast(t('updated'), 'ok'); await loadUsers();
+  } catch(e) { toast(t('updateFailed'), 'err'); }
+}
+function openAddUser() {
+  ['nu-name','nu-email','nu-pass','nu-dept','nu-title'].forEach(i => document.getElementById(i).value='');
+  openM('m-adduser');
+}
+async function doAddUser() {
+  const name=document.getElementById('nu-name').value.trim();
+  const email=document.getElementById('nu-email').value.trim();
+  const pass=document.getElementById('nu-pass').value;
+  const role=document.getElementById('nu-role').value;
+  const dept=document.getElementById('nu-dept').value.trim();
+  const title=document.getElementById('nu-title').value.trim();
+  if (!name||!email||!pass) { toast(t('fillRequired2'), 'err'); return; }
+  try {
+    await post('/api/auth/register', { name, email, password:pass, role, department:dept, jobTitle:title });
+    toast(t('userCreated'), 'ok'); closeM('m-adduser'); await loadUsers();
+  } catch(e) { toast(t('createFailed') + e.message, 'err'); }
+}
+
+// ─── Util ──────────────────────────────────────────────────
+function openM(id) { document.getElementById(id).classList.add('open'); }
+function closeM(id) { document.getElementById(id).classList.remove('open'); }
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString(_lang === 'zh' ? 'zh-CN' : 'en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+function toast(msg, type='inf') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+async function get(url) {
+  const r = await fetch(url, { headers: { 'Authorization': `Bearer ${_tok}` } });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Request failed');
+  return d;
+}
+async function post(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${_tok}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Request failed');
+  return d;
+}
+async function put(url, body) {
+  const r = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${_tok}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.error || 'Request failed');
+  return d;
+}
+</script>
+</body>
+</html>

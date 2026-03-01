@@ -1,0 +1,452 @@
+        <button class="filter-btn" onclick="openStatsModal()" id="stats-btn">统计报表</button>
+        <button class="filter-btn btn-export" onclick="exportData()" id="export-btn">导出数据</button>
+      </div>
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="搜索资源或原因..." oninput="debouncedSearch()">
+      </div>
+      <button class="btn-new" onclick="openNewRequestModal()" id="new-btn">+ 新建申请</button>
+    </div>
+
+    <!-- 申请表格 -->
+    <div class="table-wrap">
+      <table id="requests-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>申请人</th>
+            <th>部门/职位</th>
+            <th>申请类型</th>
+            <th>目标资源</th>
+            <th>原因</th>
+            <th>期限</th>
+            <th>优先级</th>
+            <th>状态</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="requests-body">
+          <tr><td colspan="11" class="empty"><div class="empty-icon">📋</div>暂无申请记录</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 新建申请模态框 -->
+<div class="modal-overlay" id="new-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>新建权限申请</h2>
+      <button class="modal-close" onclick="closeModal('new-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- 用户信息显示 -->
+      <div class="user-info-display" id="user-info-display">
+        <div class="user-info-row">
+          <span class="user-info-label">申请人:</span>
+          <span class="user-info-value" id="display-requester-name">加载中...</span>
+        </div>
+        <div class="user-info-row">
+          <span class="user-info-label">部门:</span>
+          <span class="user-info-value" id="display-department">加载中...</span>
+        </div>
+        <div class="user-info-row">
+          <span class="user-info-label">职位:</span>
+          <span class="user-info-value" id="display-job-title">加载中...</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>申请类型 *</label>
+        <select id="request-type" required>
+          <option value="">请选择</option>
+          <option value="VPN">VPN 访问权限</option>
+          <option value="SharePoint">SharePoint 站点权限</option>
+          <option value="Admin">管理员权限</option>
+          <option value="Database">数据库访问权限</option>
+          <option value="Application">应用系统权限</option>
+          <option value="Custom">自定义权限</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>目标资源 *</label>
+        <input type="text" id="target-resource" placeholder="例如: 生产数据库、OA系统、财务系统等" required>
+      </div>
+
+      <div class="form-group">
+        <label>申请原因 *</label>
+        <textarea id="reason" placeholder="请详细说明申请此权限的原因和用途..." required></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>期限 (天)</label>
+          <select id="duration-days">
+            <option value="7">7 天</option>
+            <option value="30" selected>30 天</option>
+            <option value="90">90 天</option>
+            <option value="180">180 天</option>
+            <option value="365">365 天</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>优先级</label>
+          <select id="priority">
+            <option value="low">低</option>
+            <option value="normal" selected>普通</option>
+            <option value="high">高</option>
+            <option value="urgent">紧急</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>开始日期</label>
+          <input type="date" id="start-date">
+        </div>
+        <div class="form-group">
+          <label>结束日期</label>
+          <input type="date" id="end-date">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closeModal('new-modal')">取消</button>
+      <button class="btn-sm" onclick="saveAsDraft()">保存草稿</button>
+      <button class="btn-filter" onclick="submitRequest()" id="submit-btn">提交申请</button>
+    </div>
+  </div>
+</div>
+
+<!-- 详情模态框 -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="width:680px">
+    <div class="modal-header">
+      <h2>申请详情</h2>
+      <button class="modal-close" onclick="closeModal('detail-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="detail-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closeModal('detail-modal')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 审批模态框 -->
+<div class="modal-overlay" id="approval-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="approval-title">审批操作</h2>
+      <button class="modal-close" onclick="closeModal('approval-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>审批意见</label>
+        <textarea id="approval-comment" placeholder="请输入审批意见..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closeModal('approval-modal')">取消</button>
+      <button class="btn-reject" onclick="doReject()" id="reject-btn">拒绝</button>
+      <button class="btn-approve" onclick="doApprove()" id="approve-btn">批准</button>
+    </div>
+  </div>
+</div>
+
+<!-- 统计报表模态框 -->
+<div class="modal-overlay" id="stats-modal">
+  <div class="modal" style="width:800px">
+    <div class="modal-header">
+      <h2>统计报表</h2>
+      <button class="modal-close" onclick="closeModal('stats-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>开始日期</label>
+          <input type="date" id="stats-start-date">
+        </div>
+        <div class="filter-group">
+          <label>结束日期</label>
+          <input type="date" id="stats-end-date">
+        </div>
+        <div class="filter-group">
+          <label>部门</label>
+          <input type="text" id="stats-department" placeholder="部门筛选">
+        </div>
+        <div class="filter-group">
+          <label>&nbsp;</label>
+          <button class="btn-filter" onclick="loadStats()">刷新统计</button>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="stats-grid">
+        <!-- 统计卡片将通过JS动态生成 -->
+      </div>
+
+      <div class="chart-placeholder">
+        📊 统计图表区域 (未来可集成图表库)
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-reset" onclick="closeModal('stats-modal')">关闭</button>
+      <button class="btn-export" onclick="exportStats()">导出报表</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast 通知 -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── 配置 ─────────────────────────────────────────────────────
+const API = window.location.origin;
+let _token = localStorage.getItem('access_token');
+let _user = JSON.parse(localStorage.getItem('user') || '{}');
+let _currentFilter = 'all';
+let _currentRequestId = null;
+let _searchTimeout = null;
+let _statsData = null;
+
+// 角色标签映射
+const roleLabels = {
+  'requester': '普通用户',
+  'approver_l1': 'L1 审批员',
+  'approver_l2': 'L2 审批员',
+  'admin': '管理员'
+};
+
+// 状态标签映射
+const statusLabels = {
+  'draft': '草稿',
+  'pending_l1': '待 L1 审批',
+  'pending_l2': '待 L2 审批',
+  'approved': '已批准',
+  'rejected': '已拒绝'
+};
+
+// 优先级标签映射
+const priorityLabels = {
+  'low': '低',
+  'normal': '普通',
+  'high': '高',
+  'urgent': '紧急'
+};
+
+// ─── 初始化 ───────────────────────────────────────────────────
+window.onload = initApp;
+
+function initApp() {
+  if (_token && _user.id) {
+    showAppPage();
+    loadUserInfo();
+    loadRequests();
+    loadStatsOverview();
+  } else {
+    showLoginPage();
+  }
+}
+
+function showLoginPage() {
+  document.getElementById('login-page').style.display = 'flex';
+  document.getElementById('app-page').style.display = 'none';
+}
+
+function showAppPage() {
+  document.getElementById('login-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'flex';
+  updateUserDisplay();
+}
+
+// ─── 认证相关 ─────────────────────────────────────────────────
+async function doLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+
+  btn.disabled = true;
+  btn.textContent = '登录中...';
+  err.textContent = '';
+
+  try {
+    const r = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '登录失败');
+
+    _token = d.token;
+    _user = d.user;
+    localStorage.setItem('access_token', _token);
+    localStorage.setItem('user', JSON.stringify(_user));
+
+    showAppPage();
+    loadUserInfo();
+    loadRequests();
+    loadStatsOverview();
+  } catch (e) {
+    err.textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '登录';
+  }
+}
+
+function doLogout() {
+  if (confirm('确定要退出登录吗？')) {
+    _token = null;
+    _user = {};
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('user');
+    showLoginPage();
+  }
+}
+
+function authHeaders() {
+  return {
+    'Authorization': `Bearer ${_token}`,
+    'Content-Type': 'application/json'
+  };
+}
+
+// ─── 用户信息 ─────────────────────────────────────────────────
+async function loadUserInfo() {
+  try {
+    const r = await fetch(`${API}/api/auth/me`, { headers: authHeaders() });
+    const d = await r.json();
+    if (r.ok && d.user) {
+      _user = { ..._user, ...d.user };
+      localStorage.setItem('user', JSON.stringify(_user));
+      updateUserDisplay();
+    }
+  } catch (e) {
+    console.error('加载用户信息失败:', e);
+  }
+}
+
+function updateUserDisplay() {
+  document.getElementById('user-name').textContent = _user.name || '用户';
+  document.getElementById('user-avatar').textContent = (_user.name || 'U').charAt(0).toUpperCase();
+  
+  const roleBadge = document.getElementById('user-role');
+  roleBadge.textContent = roleLabels[_user.role] || _user.role;
+  roleBadge.className = `role-badge role-${_user.role}`;
+
+  // 根据角色显示/隐藏功能按钮
+  const isAdmin = _user.role === 'admin';
+  const isApprover = _user.role?.includes('approver');
+  document.getElementById('stats-btn').style.display = isAdmin || isApprover ? 'inline-block' : 'none';
+  document.getElementById('export-btn').style.display = isAdmin ? 'inline-block' : 'none';
+}
+
+// ─── 申请管理 ─────────────────────────────────────────────────
+async function loadRequests() {
+  try {
+    const params = new URLSearchParams();
+    if (_currentFilter !== 'all') params.append('status', _currentFilter);
+    
+    // 添加高级筛选参数
+    const startDate = document.getElementById('filter-start-date')?.value;
+    const endDate = document.getElementById('filter-end-date')?.value;
+    const requestType = document.getElementById('filter-request-type')?.value;
+    const department = document.getElementById('filter-department')?.value;
+    const search = document.getElementById('search-input')?.value;
+    
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (requestType) params.append('requestType', requestType);
+    if (department) params.append('department', department);
+    if (search) params.append('search', search);
+
+    const r = await fetch(`${API}/api/requests?${params}`, { headers: authHeaders() });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || '加载失败');
+
+    renderRequests(d.requests || []);
+  } catch (e) {
+    showToast('加载申请列表失败: ' + e.message, 'error');
+  }
+}
+
+function renderRequests(requests) {
+  const tbody = document.getElementById('requests-body');
+  if (!requests.length) {
+    tbody.innerHTML = `<tr><td colspan="11" class="empty"><div class="empty-icon">📋</div>暂无申请记录</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = requests.map(r => `
+    <tr>
+      <td>#${r.id}</td>
+      <td>
+        <div style="font-weight:500">${r.requesterName}</div>
+        <div style="font-size:.75rem;color:#888">${r.requesterEmail}</div>
+      </td>
+      <td>
+        <div style="font-size:.8rem">${r.department || '未设置'}</div>
+        <div style="font-size:.75rem;color:#888">${r.jobTitle || '未设置'}</div>
+      </td>
+      <td>${r.requestType}</td>
+      <td>${r.targetResource}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.reason}">${r.reason}</td>
+      <td>${r.durationDays}天</td>
+      <td><span class="badge badge-priority-${r.priority || 'normal'}">${priorityLabels[r.priority] || '普通'}</span></td>
+      <td><span class="badge badge-${r.status}">${statusLabels[r.status] || r.status}</span></td>
+      <td style="white-space:nowrap">${new Date(r.createdAt).toLocaleDateString()}</td>
+      <td>
+        <div class="actions">
+          <button class="btn-sm btn-view" onclick="viewRequest(${r.id})">查看</button>
+          ${r.status === 'draft' && (r.requesterId === _user.id || _user.role === 'admin') ? `
+            <button class="btn-sm btn-submit" onclick="submitExistingRequest(${r.id})">提交</button>
+          ` : ''}
+          ${r.status === 'pending_l1' && (_user.role === 'approver_l1' || _user.role === 'admin') ? `
+            <button class="btn-sm btn-approve" onclick="openApprovalModal(${r.id}, 'L1')">审批</button>
+          ` : ''}
+          ${r.status === 'pending_l2' && (_user.role === 'approver_l2' || _user.role === 'admin') ? `
+            <button class="btn-sm btn-approve" onclick="openApprovalModal(${r.id}, 'L2')">审批</button>
+          ` : ''}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function setFilter(status) {
+  _currentFilter = status;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  loadRequests();
+}
+
+function debouncedSearch() {
+  clearTimeout(_searchTimeout);
+  _searchTimeout = setTimeout(() => loadRequests(), 300);
+}
+
+function toggleAdvancedFilters() {
+  const filters = document.getElementById('advanced-filters');
+  filters.style.display = filters.style.display === 'none' ? 'block' : 'none';
+}
+
+function applyAdvancedFilters() {
+  loadRequests();
+}
+
+function resetAdvancedFilters() {
+  document.getElementById('filter-start-date').value = '';
+  document.getElementById('filter-end-date').value = '';
+  document.getElementById('filter-request-type').value = '';
+  document.getElementById('filter-department').value = '';
+  loadRequests();
+}
+
+// ─── 新建申请 ─

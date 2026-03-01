@@ -1,0 +1,9 @@
+node_modules/
+.env
+*.log
+*.zip
+*.tar.gz
+*.backup
+_del_node_modules/
+temp-deploy/
+deploy-v3/

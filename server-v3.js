@@ -1,5 +1,5 @@
-// 企业内部存取权限申请系统 v3 - 完整功能版
-// 支持: 2-3角色 + 双阶审核 + 自动用户信息 + 时间查询
+// Enterprise Internal Access Request System v3
+// Supports: multi-role + two-level approval + auto user info + time-range query
 const express = require('express');
 const cors = require('cors');
 const sql = require('mssql');
@@ -39,15 +39,15 @@ getPool().catch(e => console.error('DB init error:', e.message));
 function auth(req, res, next) {
   const h = req.headers['authorization'] || '';
   const token = h.startsWith('Bearer ') ? h.slice(7) : null;
-  if (!token) return res.status(401).json({ error: '未登录，请先登录' });
+  if (!token) return res.status(401).json({ error: 'Not logged in, please login' });
   try { req.user = jwt.verify(token, JWT_SECRET); next(); }
-  catch { return res.status(401).json({ error: 'Token 已过期，请重新登录' }); }
+  catch { return res.status(401).json({ error: 'Token expired, please login again' }); }
 }
 
 function role(...roles) {
   return (req, res, next) => {
     if (!roles.includes(req.user.role))
-      return res.status(403).json({ error: '无权限执行此操作' });
+      return res.status(403).json({ error: 'Insufficient permissions' });
     next();
   };
 }
@@ -67,16 +67,16 @@ app.get('/api/health', async (req, res) => {
 // ─── Auth ─────────────────────────────────────────────────────
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: '请输入邮箱和密码' });
+  if (!email || !password) return res.status(400).json({ error: 'Email and password are required' });
   try {
     const p = await getPool();
     const r = await p.request()
       .input('email', sql.NVarChar, email.trim().toLowerCase())
       .query('SELECT * FROM Users WHERE email=@email AND isActive=1');
     const user = r.recordset[0];
-    if (!user) return res.status(401).json({ error: '邮箱或密码错误' });
+    if (!user) return res.status(401).json({ error: 'Invalid email or password' });
     const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(401).json({ error: '邮箱或密码错误' });
+    if (!ok) return res.status(401).json({ error: 'Invalid email or password' });
     const token = jwt.sign({
       id: user.id, email: user.email, name: user.name,
       role: user.role, department: user.department || '', jobTitle: user.jobTitle || ''
@@ -88,7 +88,7 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/auth/me — 返回完整用户信息（自动带入，不可前端伪造）
+// GET /api/auth/me — return full user info (auto-fill, cannot be forged by frontend)
 app.get('/api/auth/me', auth, async (req, res) => {
   try {
     const p = await getPool();
@@ -96,7 +96,7 @@ app.get('/api/auth/me', auth, async (req, res) => {
       .input('id', sql.Int, req.user.id)
       .query('SELECT id,name,email,role,department,jobTitle,isActive,createdAt FROM Users WHERE id=@id');
     const user = r.recordset[0];
-    if (!user) return res.status(404).json({ error: '用户不存在' });
+    if (!user) return res.status(404).json({ error: 'User not found' });
     res.json({ user });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -105,13 +105,13 @@ app.get('/api/auth/me', auth, async (req, res) => {
 app.post('/api/auth/register', auth, role('admin'), async (req, res) => {
   const { name, email, password, role: userRole, department, jobTitle } = req.body;
   const validRoles = ['requester', 'approver_l1', 'approver_l2', 'admin'];
-  if (!name || !email || !password || !userRole) return res.status(400).json({ error: '所有字段必填' });
-  if (!validRoles.includes(userRole)) return res.status(400).json({ error: '无效的角色' });
+  if (!name || !email || !password || !userRole) return res.status(400).json({ error: 'All fields are required' });
+  if (!validRoles.includes(userRole)) return res.status(400).json({ error: 'Invalid role' });
   try {
     const p = await getPool();
     const ex = await p.request().input('email', sql.NVarChar, email.trim().toLowerCase())
       .query('SELECT id FROM Users WHERE email=@email');
-    if (ex.recordset.length) return res.status(409).json({ error: '邮箱已存在' });
+    if (ex.recordset.length) return res.status(409).json({ error: 'Email already exists' });
     const hash = await bcrypt.hash(password, 10);
     const r = await p.request()
       .input('name', sql.NVarChar, name)
@@ -123,7 +123,7 @@ app.post('/api/auth/register', auth, role('admin'), async (req, res) => {
       .query(`INSERT INTO Users(name,email,password_hash,role,department,jobTitle)
               OUTPUT INSERTED.id,INSERTED.name,INSERTED.email,INSERTED.role,INSERTED.department,INSERTED.jobTitle
               VALUES(@name,@email,@hash,@role,@dept,@title)`);
-    res.status(201).json({ message: '用户创建成功', user: r.recordset[0] });
+    res.status(201).json({ message: 'User created successfully', user: r.recordset[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -143,23 +143,23 @@ app.put('/api/users/:id', auth, role('admin'), async (req, res) => {
     .input('dept', sql.NVarChar, department || '')
     .input('title', sql.NVarChar, jobTitle || '')
     .query('UPDATE Users SET role=@role,isActive=@active,department=@dept,jobTitle=@title,updatedAt=GETUTCDATE() WHERE id=@id');
-  res.json({ message: '用户已更新' });
+  res.json({ message: 'User updated' });
 });
 
 // ─── Requests ────────────────────────────────────────────────
-// GET /api/requests — 角色隔离 + 时间范围查询 + 分页支持
+// GET /api/requests — role-isolated + time-range query + pagination
 app.get('/api/requests', auth, async (req, res) => {
   try {
     const p = await getPool();
     const { startDate, endDate, status, requestType, department, search, page = 1, limit = 10 } = req.query;
     const userRole = req.user.role;
 
-    // 解析分页参数
+    // Parse pagination params
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 10;
     const offset = (pageNum - 1) * limitNum;
 
-    // 角色隔离基础条件
+    // Role-based base conditions
     let roleWhere = '';
     if (userRole === 'approver_l1') {
       roleWhere = `AND (r.status='pending_l1' OR EXISTS(SELECT 1 FROM ApprovalRecords ar WHERE ar.requestId=r.id AND ar.approverId=${req.user.id}))`;
@@ -168,7 +168,7 @@ app.get('/api/requests', auth, async (req, res) => {
     } else if (userRole === 'requester') {
       roleWhere = `AND r.requesterId=${req.user.id}`;
     }
-    // admin 看全部，无额外条件
+    // admin sees all, no extra condition
 
     const request = p.request();
     let extras = '';
@@ -180,7 +180,7 @@ app.get('/api/requests', auth, async (req, res) => {
     if (department) { request.input('dp', sql.NVarChar, department);         extras += ' AND r.department=@dp'; }
     if (search)    { request.input('sq', sql.NVarChar, `%${search}%`);       extras += ' AND (r.targetResource LIKE @sq OR r.reason LIKE @sq OR u.name LIKE @sq)'; }
 
-    // 获取总数
+    // Get total count
     const countResult = await request.query(`
       SELECT COUNT(*) as total
       FROM AccessRequests r
@@ -189,7 +189,7 @@ app.get('/api/requests', auth, async (req, res) => {
     `);
     const total = countResult.recordset[0].total;
 
-    // 获取分页数据
+    // Get paginated data
     const result = await request.query(`
       SELECT r.*, u.name as uName, u.department as uDept, u.jobTitle as uTitle
       FROM AccessRequests r
@@ -223,30 +223,30 @@ app.get('/api/requests/:id', auth, async (req, res) => {
       SELECT r.*, u.name as uName, u.department as uDept, u.jobTitle as uTitle
       FROM AccessRequests r LEFT JOIN Users u ON r.requesterId=u.id WHERE r.id=@id
     `);
-    if (!r.recordset.length) return res.status(404).json({ error: '申请不存在' });
+    if (!r.recordset.length) return res.status(404).json({ error: 'Request not found' });
     const item = r.recordset[0];
     const uRole = req.user.role;
     if (uRole === 'requester' && item.requesterId !== req.user.id)
-      return res.status(403).json({ error: '无权限查看此申请' });
-    // 获取完整审核历史（不可删除/覆盖）
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    // Get full approval history (immutable)
     const hist = await p.request().input('rid', sql.Int, req.params.id)
       .query('SELECT * FROM ApprovalRecords WHERE requestId=@rid ORDER BY createdAt ASC');
     res.json({ ...item, approvalHistory: hist.recordset });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// POST /api/requests — 创建申请（从服务端自动带入用户信息）
+// POST /api/requests — create request (user info auto-filled from server)
 app.post('/api/requests', auth, async (req, res) => {
   const { requestType, targetResource, reason, durationDays, priority } = req.body;
   if (!requestType || !targetResource || !reason)
-    return res.status(400).json({ error: '请填写: requestType、targetResource、reason' });
+    return res.status(400).json({ error: 'Required: requestType, targetResource, reason' });
   try {
     const p = await getPool();
-    // 从数据库读取用户信息 — 不信任前端传入的 email/name
+    // Read user info from DB — do not trust frontend-supplied email/name
     const uRes = await p.request().input('id', sql.Int, req.user.id)
       .query('SELECT name,email,department,jobTitle FROM Users WHERE id=@id');
     const u = uRes.recordset[0];
-    if (!u) return res.status(404).json({ error: '用户不存在' });
+    if (!u) return res.status(404).json({ error: 'User not found' });
 
     const days = parseInt(durationDays) || 30;
     const startDate = new Date();
@@ -271,7 +271,7 @@ app.post('/api/requests', auth, async (req, res) => {
         OUTPUT INSERTED.*
         VALUES(@rName,@rEmail,@dept,@title,@rType,@tRes,@reason,@days,@prio,@sd,@ed,'draft',@uid)
       `);
-    res.status(201).json({ message: '申请创建成功', requestId: r.recordset[0].id, request: r.recordset[0] });
+    res.status(201).json({ message: 'Request created successfully', requestId: r.recordset[0].id, request: r.recordset[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -281,14 +281,14 @@ app.post('/api/requests/:id/submit', auth, async (req, res) => {
     const p = await getPool();
     const c = await p.request().input('id', sql.Int, req.params.id).query('SELECT * FROM AccessRequests WHERE id=@id');
     const item = c.recordset[0];
-    if (!item) return res.status(404).json({ error: '申请不存在' });
+    if (!item) return res.status(404).json({ error: 'Request not found' });
     if (req.user.role !== 'admin' && item.requesterId !== req.user.id)
-      return res.status(403).json({ error: '无权限提交此申请' });
+      return res.status(403).json({ error: 'Insufficient permissions' });
     if (item.status !== 'draft')
-      return res.status(400).json({ error: `当前状态 [${item.status}] 不可提交` });
+      return res.status(400).json({ error: `Request with status [${item.status}] cannot be submitted` });
     const up = await p.request().input('id', sql.Int, req.params.id)
       .query(`UPDATE AccessRequests SET status='pending_l1',updatedAt=GETUTCDATE() OUTPUT INSERTED.* WHERE id=@id`);
-    res.json({ message: '已提交，等待 L1 审批', request: up.recordset[0] });
+    res.json({ message: 'Submitted, awaiting L1 approval', request: up.recordset[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -299,16 +299,16 @@ app.post('/api/requests/:id/approve', auth, role('approver_l1', 'approver_l2', '
     const p = await getPool();
     const c = await p.request().input('id', sql.Int, req.params.id).query('SELECT * FROM AccessRequests WHERE id=@id');
     const item = c.recordset[0];
-    if (!item) return res.status(404).json({ error: '申请不存在' });
+    if (!item) return res.status(404).json({ error: 'Request not found' });
     const r = req.user.role;
     let level, nextStatus, msg;
     if ((r === 'approver_l1' || r === 'admin') && item.status === 'pending_l1')
-      { level = 'L1'; nextStatus = 'pending_l2'; msg = 'L1 通过，等待 L2 审批'; }
+      { level = 'L1'; nextStatus = 'pending_l2'; msg = 'L1 approved, awaiting L2 review'; }
     else if ((r === 'approver_l2' || r === 'admin') && item.status === 'pending_l2')
-      { level = 'L2'; nextStatus = 'approved'; msg = 'L2 通过，申请已批准'; }
-    else return res.status(400).json({ error: `状态 [${item.status}] 不允许此角色审批` });
+      { level = 'L2'; nextStatus = 'approved'; msg = 'L2 approved, request has been approved'; }
+    else return res.status(400).json({ error: `Status [${item.status}] cannot be approved by this role` });
 
-    // 写入不可覆盖的审核记录
+    // Write immutable approval record
     await p.request()
       .input('rid', sql.Int, req.params.id).input('lv', sql.NVarChar, level)
       .input('aid', sql.Int, req.user.id).input('an', sql.NVarChar, req.user.name)
@@ -326,17 +326,17 @@ app.post('/api/requests/:id/approve', auth, role('approver_l1', 'approver_l2', '
 // POST /api/requests/:id/reject
 app.post('/api/requests/:id/reject', auth, role('approver_l1', 'approver_l2', 'admin'), async (req, res) => {
   const { comment } = req.body;
-  if (!comment) return res.status(400).json({ error: '拒绝时必须填写原因' });
+  if (!comment) return res.status(400).json({ error: 'Rejection reason is required' });
   try {
     const p = await getPool();
     const c = await p.request().input('id', sql.Int, req.params.id).query('SELECT * FROM AccessRequests WHERE id=@id');
     const item = c.recordset[0];
-    if (!item) return res.status(404).json({ error: '申请不存在' });
+    if (!item) return res.status(404).json({ error: 'Request not found' });
     const r = req.user.role;
     let level;
     if ((r === 'approver_l1' || r === 'admin') && item.status === 'pending_l1') level = 'L1';
     else if ((r === 'approver_l2' || r === 'admin') && item.status === 'pending_l2') level = 'L2';
-    else return res.status(400).json({ error: `状态 [${item.status}] 不允许此角色操作` });
+    else return res.status(400).json({ error: `Status [${item.status}] cannot be rejected by this role` });
 
     await p.request()
       .input('rid', sql.Int, req.params.id).input('lv', sql.NVarChar, level)
@@ -347,11 +347,11 @@ app.post('/api/requests/:id/reject', auth, role('approver_l1', 'approver_l2', 'a
 
     const up = await p.request().input('id', sql.Int, req.params.id)
       .query(`UPDATE AccessRequests SET status='rejected',updatedAt=GETUTCDATE() OUTPUT INSERTED.* WHERE id=@id`);
-    res.json({ message: `${level} 审批拒绝`, request: up.recordset[0] });
+    res.json({ message: `${level} rejected`, request: up.recordset[0] });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// GET /api/requests/stats — 统计（admin + approver 可见）
+// GET /api/stats — statistics (admin + approver visible)
 app.get('/api/stats', auth, role('admin', 'approver_l1', 'approver_l2'), async (req, res) => {
   try {
     const p = await getPool();
@@ -381,17 +381,17 @@ app.get('/api/stats', auth, role('admin', 'approver_l1', 'approver_l2'), async (
 // ─── SPA fallback ─────────────────────────────────────────────
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) res.sendFile(path.join(__dirname, 'public', 'index.html'));
-  else res.status(404).json({ error: '端点不存在' });
+  else res.status(404).json({ error: 'Endpoint not found' });
 });
 
 app.listen(PORT, () => {
-  console.log(`\n🚀 企业内部存取权限申请系统 v3 已启动`);
-  console.log(`📡 本地地址: http://localhost:${PORT}`);
-  console.log(`🏥 健康检查: http://localhost:${PORT}/api/health`);
-  console.log(`\n👥 角色权限:`);
-  console.log(`   requester     → 申请人 (创建/查看自己的申请)`);
-  console.log(`   approver_l1   → L1 审批员 (审批 pending_l1)`);
-  console.log(`   approver_l2   → L2 审批员 (审批 pending_l2)`);
-  console.log(`   admin         → 管理员 (全部权限)`);
-  console.log(`\n✅ 特性: 自动带入用户信息 | 时间范围查询 | 不可覆盖审核记录\n`);
+  console.log(`\n🚀 Enterprise Access Request System v3 started`);
+  console.log(`📡 Local: http://localhost:${PORT}`);
+  console.log(`🏥 Health: http://localhost:${PORT}/api/health`);
+  console.log(`\n👥 Roles:`);
+  console.log(`   requester     → Requester (create/view own requests)`);
+  console.log(`   approver_l1   → L1 Approver (approve pending_l1)`);
+  console.log(`   approver_l2   → L2 Approver (approve pending_l2)`);
+  console.log(`   admin         → Administrator (all permissions)`);
+  console.log(`\n✅ Features: auto user info | time-range query | immutable audit records\n`);
 });
